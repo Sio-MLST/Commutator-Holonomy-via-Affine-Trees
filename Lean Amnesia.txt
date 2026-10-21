@@ -1,0 +1,221 @@
+﻿import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+import Mathlib.LinearAlgebra.Matrix.Trace
+import Mathlib.LinearAlgebra.Matrix.Notation
+import Mathlib.Tactic
+
+
+namespace PortableNilpotentCell
+
+
+open Matrix Polynomial
+
+
+/-! ### The six vertices ordered as (2, 8, 11, 17, 20, 26)
+Rows 0–3 are the characteristic vector of {2, 11, 20} (their common out-neighbourhood);
+rows 4–5 are that of {8, 17, 26}.  The grouping is by out-neighbourhood, NOT by
+residue mod 9: vertices 8 and 17 are ≡ 8 (mod 9), not ≡ 2. -/
+
+
+def A : Matrix (Fin 6) (Fin 6) ℤ :=
+  !![1, 0, 1, 0, 1, 0;
+     1, 0, 1, 0, 1, 0;
+     1, 0, 1, 0, 1, 0;
+     1, 0, 1, 0, 1, 0;
+     0, 1, 0, 1, 0, 1;
+     0, 1, 0, 1, 0, 1]
+
+
+/-- The two distinct rows of `A`: characteristic vectors of the two
+out-neighbourhood classes `{2, 11, 20}` and `{8, 17, 26}`. -/
+def c₂ : Fin 6 → ℤ := ![1, 0, 1, 0, 1, 0]
+def c₈ : Fin 6 → ℤ := ![0, 1, 0, 1, 0, 1]
+
+
+/-- First out-neighbourhood class: the indicator of `{2, 8, 11, 17}`. -/
+def colA : Fin 6 → ℤ := ![1, 1, 1, 1, 0, 0]
+/-- Second out-neighbourhood class: the indicator of `{20, 26}`. -/
+def colB : Fin 6 → ℤ := ![0, 0, 0, 0, 1, 1]
+
+
+lemma A_mulVec_colA : A *ᵥ colA = 2 • (colA + colB) := by
+  funext i; fin_cases i <;> decide
+
+
+lemma A_mulVec_colB : A *ᵥ colB = colA + colB := by
+  funext i; fin_cases i <;> decide
+
+
+lemma A_mulVec_c₂ : A *ᵥ c₂ = 3 • colA := by
+  funext i; fin_cases i <;> decide
+
+
+lemma A_mulVec_c₈ : A *ᵥ c₈ = 3 • colB := by
+  funext i; fin_cases i <;> decide
+
+
+/-! ### Rank factorization `A = L * R`
+
+
+`L` has columns `colA, colB` (the two distinct *columns* of `A`) and `R` has rows
+`c₂, c₈` (the two distinct *rows*); then `A = L * R` and `R * L = M` is the matrix of
+the restriction of `A` to its invariant image `span {colA, colB}`, in the basis
+`(colA, colB)`.  Since `L * R` and `R * L` share their nonzero spectrum (Sylvester's
+determinant identity `det(XI − L·R) = X⁴ · det(XI − R·L)`), the characteristic
+polynomial of the 6×6 matrix `A` is `X⁴` times that of the 2×2 matrix `M`. -/
+
+
+def L : Matrix (Fin 6) (Fin 2) ℤ :=
+  !![1, 0;
+     1, 0;
+     1, 0;
+     1, 0;
+     0, 1;
+     0, 1]
+
+
+def R : Matrix (Fin 2) (Fin 6) ℤ :=
+  !![1, 0, 1, 0, 1, 0;
+     0, 1, 0, 1, 0, 1]
+
+
+lemma L_mul_R : L * R = A := by
+  ext i j; fin_cases i <;> fin_cases j <;> decide
+
+
+def M : Matrix (Fin 2) (Fin 2) ℤ := !![2, 1; 2, 1]
+
+
+lemma R_mul_L : R * L = M := by
+  ext i j; fin_cases i <;> fin_cases j <;> decide
+
+
+lemma M_charpoly : M.charpoly = X * (X - 3) := by
+  simp only [charpoly, charmatrix, det_fin_two, M]
+  norm_num
+  ring
+
+
+/-- **Sylvester step, stated abstractly.**  If a 6×6 integer matrix factors as `L * R`
+with `R * L = M` a 2×2 matrix of characteristic polynomial `X * (X - 3)`, then
+`(L * R).charpoly = X ^ 5 * (X - 3)`.  Proof: `Matrix.charpoly_mul_comm'` gives
+`X ^ 2 * χ (L * R) = X ^ 6 * χ (R * L)`; cancel the regular factor `X ^ 2`. -/
+lemma sylvester_rank_two
+    (L : Matrix (Fin 6) (Fin 2) ℤ) (R : Matrix (Fin 2) (Fin 6) ℤ)
+    (M : Matrix (Fin 2) (Fin 2) ℤ)
+    (hM : R * L = M) (hMc : M.charpoly = X * (X - 3)) :
+    (L * R).charpoly = X ^ 5 * (X - 3) := by
+  have h := Matrix.charpoly_mul_comm' L R
+  rw [hM, hMc] at h
+  simp only [Fintype.card_fin] at h
+  -- h : X ^ 2 * (L * R).charpoly = X ^ 6 * (X * (X - 3))
+  refine mul_left_cancel₀ (pow_ne_zero 2 (X_ne_zero (R := ℤ))) ?_
+  linear_combination h
+
+
+/-- **Characteristic polynomial of `A`: `χ_A = X ^ 5 * (X - 3)`.**
+Spectrum: `3` (simple) and `0` with multiplicity `5`. -/
+theorem charpoly_A : A.charpoly = X ^ 5 * (X - 3) := by
+  rw [← L_mul_R]
+  exact sylvester_rank_two L R M R_mul_L M_charpoly
+
+
+/-! ### Consequences -/
+
+
+/-- `A ^ 2`: every row is `(2, 1, 2, 1, 2, 1)`. -/
+def B : Matrix (Fin 6) (Fin 6) ℤ :=
+  !![2, 1, 2, 1, 2, 1;
+     2, 1, 2, 1, 2, 1;
+     2, 1, 2, 1, 2, 1;
+     2, 1, 2, 1, 2, 1;
+     2, 1, 2, 1, 2, 1;
+     2, 1, 2, 1, 2, 1]
+
+
+lemma A_mul_A : A * A = B := by
+  ext i j; fin_cases i <;> fin_cases j <;> decide
+
+
+lemma A_pow_two : A ^ 2 = B := by rw [pow_two]; exact A_mul_A
+
+
+/-- The key identity: `A ^ 3 = 3 • A ^ 2`, i.e. the non-dominant part of `A`
+(the part acting on the kernel of `A ^ 2`) is nilpotent of index 2. -/
+lemma A_cube : A * A * A = 3 • (A * A) := by
+  ext i j; fin_cases i <;> fin_cases j <;> decide
+
+
+lemma A_pow_three : A ^ 3 = 3 • A ^ 2 := by
+  have h := A_cube
+  rw [← pow_two] at h
+  rw [show (3 : ℕ) = 2 + 1 from rfl, pow_succ]
+  exact h
+
+
+lemma A_pow_succ : ∀ n : ℕ, 2 ≤ n → A ^ (n + 1) = 3 • A ^ n := by
+  intro n
+  induction n with
+  | zero => intro h; exact absurd h (by omega)
+  | succ n ih =>
+    intro hn
+    rcases Nat.lt_or_ge n 2 with hlt | hge
+    · have e : n = 1 := by omega
+      subst e
+      exact A_pow_three
+    · have h1 : A ^ (n + 1 + 1) = A ^ (n + 1) * A := (pow_succ A (n + 1)).symm
+      have h2 : A ^ (n + 1) = A ^ n * A := (pow_succ A n).symm
+      rw [h1, ih hge, Matrix.smul_mul, ← h2, ih hge]
+
+
+/-- Trace formula: `Tr(A ^ n) = 3 ^ n` for all `n ≥ 1`. -/
+theorem trace_pow : ∀ n : ℕ, 1 ≤ n → (A ^ n).trace = (3 : ℤ) ^ n := by
+  intro n
+  induction n with
+  | zero => intro h; exact absurd h (by omega)
+  | succ n ih =>
+    intro _
+    rcases Nat.lt_or_ge n 1 with hlt | hge
+    · have e : n = 0 := by omega
+      subst e
+      decide
+    · rcases Nat.lt_or_ge n 2 with hlt2 | hge2
+      · have e : n = 1 := by omega
+        subst e
+        decide
+      · have hstep := A_pow_succ n hge2
+        rw [hstep, Matrix.trace_smul, ih hge]
+        simp only [pow_succ]
+        ring
+
+
+theorem trace_pow' (n : ℕ) (hn : 0 < n) : (A ^ n).trace = (3 : ℤ) ^ n :=
+  trace_pow n hn
+
+
+/-- The spectral projection `P = A ^ 2 / 9` onto the 3-eigenspace, over ℚ. -/
+def P : Matrix (Fin 6) (Fin 6) ℚ :=
+  !![2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9;
+     2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9;
+     2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9;
+     2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9;
+     2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9;
+     2 / 9, 1 / 9, 2 / 9, 1 / 9, 2 / 9, 1 / 9]
+
+
+/-- Exact one-step mixing: `P` is idempotent and `(A - 3P) ^ 2 = 0`. -/
+theorem exact_one_step_mixing :
+    ∃ Q : Matrix (Fin 6) (Fin 6) ℚ,
+      Q * Q = Q ∧
+      (A.map (Int.cast : ℤ → ℚ) - 3 • Q) * (A.map (Int.cast : ℤ → ℚ) - 3 • Q) = 0 := by
+  refine ⟨P, ?_, ?_⟩
+  · ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [P, Matrix.mul_apply, Fin.sum_univ_six] <;> norm_num
+  · ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [A, P, Matrix.mul_apply, Matrix.map_apply, Matrix.sub_apply,
+        Fin.sum_univ_six] <;>
+      norm_num
+
+
+end PortableNilpotentCell
