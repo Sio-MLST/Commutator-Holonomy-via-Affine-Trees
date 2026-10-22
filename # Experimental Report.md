@@ -1,6 +1,6 @@
-# Experimental Checks for the CHAT Papers: A Report (Revised)
+# Experimental Report
 
-*Auxiliary paper, second version. This is a complete account of the computations run in support of the CHAT papers: what each was designed to test, how, what came out, and what it does not show. Nothing here is a proof. Every claim is tagged **\[reproduced\]** (recomputed from scratch for this report), **\[extended\]** (a claim from the working notes tested further), **\[not reproduced\]** (a claim from the notes that we did not re-run), or **\[derived\]** (derived by hand and then machine-checked).*
+*Auxiliary paper, second version. This is an incomplete account of the computations run in support of the CHAT papers: what each was designed to test, how, what came out, and what it does not show. Nothing here is a proof. Every claim is tagged **\[reproduced\]** (recomputed from scratch for this report), **\[extended\]** (a claim from the working notes tested further), **\[not reproduced\]** (a claim from the notes that we did not re-run), or **\[derived\]** (derived by hand and then machine-checked).*
 
 ## 1. Scope, conventions, reproducibility
 
