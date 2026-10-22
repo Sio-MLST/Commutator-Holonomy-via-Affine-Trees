@@ -1,4 +1,4 @@
-# Commutator Holonomy via Affine Trees
+# Every-Remainder-Everywhere
 ### A Formalization-Faithful Account
 
 **Abstract.** We prove the following theorem: for every prime $p$, every positive integer $w$ with $3 \nmid w$, every residue class $r \bmod p$, and every bound $B$, there exists $n > B$ such that $n$ reaches $w$ under the Collatz map and $n \equiv r \pmod p$. In particular, the set of such $n$ is infinite. The proof proceeds by constructing, for each seed $v$ in an explicitly defined inverse tree $D(v)$, a family of "fibres" recording the residues mod $p$ attained by descendants of $v$ in each adic class; we show these fibres stabilize in size, become simultaneously all of $\mathbb{Z}/p\mathbb{Z}$, and transfer to the genuine Collatz inverse tree. Every lemma, hypothesis, and inference below corresponds step-for-step to a Lean 4 formalization; the correspondence is documented in the Appendix.
