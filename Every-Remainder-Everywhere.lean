@@ -1,7 +1,7 @@
 #import Mathlib
 
 /-
-Commutator Holonomy via Affine Trees
+Every-Remainder-Everywhere
 
 Formalisation of modular surjectivity for the inverse Collatz tree.
 Main result: for every positive integer `w` not divisible by 3, every prime `p`,
@@ -13,7 +13,7 @@ shows that the fibres of the descendant tree of any seed are eventually full.
 The cases `p = 2` and `p = 3` are settled by explicit families of powers of two.
 -/
 
-namespace CHAT
+namespace EVE
 
 variable (p : ℕ) [Fact p.Prime]
 
@@ -1739,4 +1739,4 @@ theorem main_theorem_infinite (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
     · exact main_theorem_p_eq_2 2 w hw hw3 rfl r B
     · exact main_theorem_p_eq_3 3 w hw hw3 rfl r B
 
-end CHAT
+end EVE
