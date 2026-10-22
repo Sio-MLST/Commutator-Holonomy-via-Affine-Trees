@@ -11,7 +11,11 @@ every residue `r : ZMod p` and every bound `B`, there exists `n > B` that reache
 For primes `p ≥ 5` an affine-holonomy argument on residue graphs modulo powers of 3
 shows that the fibres of the descendant tree of any seed are eventually full.
 The cases `p = 2` and `p = 3` are settled by explicit families of powers of two.
--/
+
+For any candidate cycle specification and any
+prime `p` not dividing the denominator `2^S − 3^k`, no modular obstruction exists modulo
+`p`: there is always a witness `n` that genuinely reaches `v` and satisfies the cycle
+equation modulo `p`. -/
 
 namespace EVE
 
@@ -1738,5 +1742,45 @@ theorem main_theorem_infinite (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
     rcases hp23 with rfl | rfl
     · exact main_theorem_p_eq_2 2 w hw hw3 rfl r B
     · exact main_theorem_p_eq_3 3 w hw hw3 rfl r B
+
+/-! ## Modular solvability of cycle equations -/
+
+/-- A candidate cycle equation `(2^S − 3^k) · x ≡ N (mod p)` is solvable in `ZMod p`
+whenever `p` does not divide the denominator `2^S − 3^k`. -/
+theorem cycle_equation_solvable_mod_p (S k N : ℕ)
+    (h : ((2 ^ S - 3 ^ k : ℤ) : ZMod p) ≠ 0) :
+    ∃ r : ZMod p, ((2 ^ S - 3 ^ k : ℤ) : ZMod p) * r = (N : ZMod p) := by
+  refine ⟨((2 ^ S - 3 ^ k : ℤ) : ZMod p)⁻¹ * (N : ZMod p), ?_⟩
+  rw [← mul_assoc, mul_inv_cancel₀ h, one_mul]
+
+/-! ## The modular barrier on cycles -/
+
+/-- Candidate cycle specification: length `k`, `S` divisions by 2, numerator `N`. -/
+structure CycleSpec where
+  k : ℕ
+  S : ℕ
+  N : ℕ
+
+/-- The density axiom of the CHAT skeleton is a theorem here (via `main_theorem_infinite`),
+but only under the natural hypotheses `0 < v` and `3 ∤ v`: the unqualified axiom is false,
+since e.g. every predecessor of 3 is of the form `3 · 2^j`, which is never `≡ 0 (mod 5)`. -/
+theorem reaching_predecessor_dense_mod_p {v : ℕ} (hv : 0 < v) (hv3 : v % 3 ≠ 0)
+    (r : ZMod p) :
+    ∃ n : ℕ, Reaches v n ∧ (n : ZMod p) = r := by
+  obtain ⟨n, _, h1, h2⟩ := main_theorem_infinite p v hv hv3 r 0
+  exact ⟨n, h1, h2⟩
+
+theorem cycle_local_obstruction_barrier (spec : CycleSpec)
+    (h_denom : ((2 ^ spec.S - 3 ^ spec.k : ℤ) : ZMod p) ≠ 0)
+    {v : ℕ} (hv : 0 < v) (hv3 : v % 3 ≠ 0) :
+    ∃ (n : ℕ), Reaches v n ∧
+      ((2 ^ spec.S - 3 ^ spec.k : ℤ) : ZMod p) * (n : ZMod p) = (spec.N : ZMod p) := by
+  -- 1. Solve the equation in the finite field ZMod p.
+  -- 2. Pull the residue back to a genuine predecessor via density.
+  obtain ⟨n, hn_reaches, hn_mod⟩ := reaching_predecessor_dense_mod_p p hv hv3
+    (((2 ^ spec.S - 3 ^ spec.k : ℤ) : ZMod p)⁻¹ * (spec.N : ZMod p))
+  -- 3. Confirm n satisfies the cycle equation modulo p.
+  refine ⟨n, hn_reaches, ?_⟩
+  rw [hn_mod, ← mul_assoc, mul_inv_cancel₀ h_denom, one_mul]
 
 end EVE
