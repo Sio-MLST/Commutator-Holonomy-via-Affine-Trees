@@ -1,4 +1,4 @@
-# The CHAT Researcher's Bible
+# Researcher's Bible
 ### A condensed proof you can hold in your head, a map of the surrounding country, and an honest list of where the dragons live
 
 *For a reader who already knows what Collatz is, what 3-adic digits are, and what a commutator does, and who wants the structure of the proof without the scaffolding.*
