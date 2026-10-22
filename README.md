@@ -1,4 +1,4 @@
-Coverage Holonomy via Affine Trees
+Commutator Holonomy via Affine Trees
 
 A Lean 4 formalization of a mathematical result concerning the inverse tree of the Collatz map.
 
