@@ -1,7 +1,7 @@
 #import Mathlib
 
 /-
-Coverage Holonomy via Affine Trees
+Commutator Holonomy via Affine Trees
 
 Formalisation of modular surjectivity for the inverse Collatz tree.
 Main result: for every positive integer `w` not divisible by 3, every prime `p`,
