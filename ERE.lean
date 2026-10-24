@@ -1452,6 +1452,7 @@ theorem main_theorem_core (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v)
 
 theorem collatz_8 : collatz^[3] 8 = 1 := by decide
 
+/-- Auxiliary milestone (Table 2): Density of reaching predecessors for base target `w = 1`. -/
 theorem inverse_tree_covers (r : ZMod p) :
     ∃ n : ℕ, 0 < n ∧ Reaches 1 n ∧ (n : ZMod p) = r := by
   have hp : p.Prime := Fact.out
@@ -1493,7 +1494,7 @@ theorem exists_inG_reaches (m : ℕ) (hm : 0 < m) (hm3 : m % 3 ≠ 0) :
   · refine ⟨512 * m, ⟨by omega, Or.inl (by omega)⟩, ⟨9, collatz_pow_mul 9 m⟩⟩
   · refine ⟨64 * m, ⟨by omega, Or.inr (by omega)⟩, ⟨6, collatz_pow_mul 6 m⟩⟩
 
-/-! ## Modular bridges for general targets (auxiliary) -/
+/-! ## Auxiliary lemmas for Section 9 (Table 2: Collatz bridge, small primes) -/
 
 lemma exists_pow_two_mod (w a : ℕ) (hw3 : w % 3 ≠ 0) (ha9 : a = 1 ∨ a = 2) :
     ∃ j < 6, 2 ^ j * w % 9 = a := by
@@ -1683,7 +1684,7 @@ theorem cycle_equation_solvable_mod_p (S k N : ℕ)
   refine ⟨((2 ^ S - 3 ^ k : ℤ) : ZMod p)⁻¹ * (N : ZMod p), ?_⟩
   rw [← mul_assoc, mul_inv_cancel₀ h, one_mul]
 
-/-! ### The modular barrier on cycles (Theorem 10.3) -/
+/-! ### Absence of local obstructions (Theorem 10.3) -/
 
 structure CycleSpec where
   k : ℕ
