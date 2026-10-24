@@ -6,10 +6,87 @@ variable (p : ℕ) [Fact p.Prime]
 
 instance instNeZeroERE : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
 
-/-! ## Domain and operators -/
+/-! ## 1. Collatz dynamics and atomic inverse steps -/
+
+def collatz (n : ℕ) : ℕ := if n % 2 = 0 then n / 2 else 3 * n + 1
+
+def Reaches (v n : ℕ) : Prop := ∃ k, collatz^[k] n = v
+
+theorem collatz_double (a : ℕ) : collatz (2 * a) = a := by
+  unfold collatz
+  split_ifs with h <;> omega
+
+theorem collatz_pow_mul (j m : ℕ) : collatz^[j] (2 ^ j * m) = m := by
+  induction j with
+  | zero => simp
+  | succ j ih =>
+    rw [show 2 ^ (j + 1) * m = 2 * (2 ^ j * m) by ring,
+      Function.iterate_succ_apply, collatz_double, ih]
+
+theorem reaches_trans {a b c : ℕ} (h1 : Reaches b a) (h2 : Reaches c b) : Reaches c a := by
+  obtain ⟨k1, hk1⟩ := h1
+  obtain ⟨k2, hk2⟩ := h2
+  exact ⟨k2 + k1, by rw [Function.iterate_add_apply, hk1, hk2]⟩
+
+/-- The two atomic backward moves: every predecessor of `n` is `2n` (undo halving)
+or an odd `m` with `3m + 1 = n` (undo `3m + 1`). -/
+theorem collatz_eq_iff (m n : ℕ) :
+    collatz m = n ↔ m = 2 * n ∨ (m % 2 = 1 ∧ 3 * m + 1 = n) := by
+  unfold collatz
+  split_ifs with h <;> omega
+
+/-- Multiples of `3` admit only the doubling predecessor. -/
+theorem pred_of_three_dvd {m n : ℕ} (hn : n % 3 = 0) (h : collatz m = n) : m = 2 * n := by
+  rcases (collatz_eq_iff m n).1 h with h1 | ⟨h2, h3⟩ <;> omega
+
+/-- Backward `3m + 1` step, in the form used for the left branch: if `2x - 1 = 3m`
+then `m` is odd and steps to `2x`. -/
+theorem collatz_third_pred {x m : ℕ} (hx : 1 ≤ x) (hm : 2 * x - 1 = 3 * m) :
+    collatz m = 2 * x := by
+  unfold collatz
+  split_ifs with h <;> omega
+
+/-! ## 2. Good numbers, the coordinate `x = (3n+1)/2`, and the valid classes -/
+
+/-- Odd numbers prime to `3`: the only odd numbers with a nontrivial backward `3m+1` branch. -/
+def GoodOdd (n : ℕ) : Prop := n % 2 = 1 ∧ n % 3 ≠ 0
+
+/-- The coordinate: for odd `n`, `n → 3n+1 = 2x → x`. -/
+def toX (n : ℕ) : ℕ := (3 * n + 1) / 2
 
 def InG (x : ℕ) : Prop := 8 ≤ x ∧ (x % 9 = 2 ∨ x % 9 = 8)
 def ValidClass (c : ℕ) : Prop := c % 9 = 2 ∨ c % 9 = 8
+
+theorem collatz_odd {n : ℕ} (hn : n % 2 = 1) : collatz n = 2 * toX n := by
+  unfold collatz toX
+  split_ifs with h <;> omega
+
+theorem reaches_toX {n : ℕ} (hn : n % 2 = 1) : Reaches (toX n) n :=
+  ⟨2, by
+    show collatz (collatz n) = toX n
+    rw [collatz_odd hn, collatz_double]⟩
+
+theorem toX_inG {n : ℕ} (h : GoodOdd n) (h5 : 5 ≤ n) : InG (toX n) := by
+  obtain ⟨h2, h3⟩ := h
+  unfold InG toX
+  refine ⟨by omega, ?_⟩
+  omega
+
+theorem exists_goodOdd_of_inG {x : ℕ} (h : InG x) :
+    ∃ n, GoodOdd n ∧ 5 ≤ n ∧ toX n = x := by
+  obtain ⟨h8, h9⟩ := h
+  refine ⟨(2 * x - 1) / 3, ⟨by omega, by omega⟩, by omega, ?_⟩
+  unfold toX
+  omega
+
+/-- The valid classes are exactly the image of the good odd numbers under `toX`. -/
+theorem inG_iff {x : ℕ} : InG x ↔ ∃ n, GoodOdd n ∧ 5 ≤ n ∧ toX n = x :=
+  ⟨exists_goodOdd_of_inG, by
+    rintro ⟨n, hg, h5, rfl⟩
+    exact toX_inG hg h5⟩
+
+/-! ## 4. Branch operators and the descendant tree -/
+
 def R (x : ℕ) : ℕ := if x % 9 = 2 then 4 * x else 16 * x
 
 def mult (x : ℕ) : ℕ :=
@@ -85,6 +162,101 @@ theorem Desc_mem {v n : ℕ} (hv : InG v) (h : Desc v n) : InG n := by
   | refl => exact hv
   | right _ ih => exact R_mem ih
   | left  _ ih => exact L_mem ih
+
+
+/-! ## 5. Descendants reach their seed -/
+
+theorem R_reaches (x : ℕ) : ∃ j, collatz^[j] (R x) = x := by
+  unfold R
+  split_ifs
+  · exact ⟨2, by rw [show (4 : ℕ) * x = 2 ^ 2 * x by norm_num]; exact collatz_pow_mul 2 x⟩
+  · exact ⟨4, by rw [show (16 : ℕ) * x = 2 ^ 4 * x by norm_num]; exact collatz_pow_mul 4 x⟩
+
+theorem L_reaches {x : ℕ} (hx1 : 1 ≤ x) (hx3 : x % 3 = 2) :
+    ∃ j, collatz^[j] (L x) = x := by
+  have hs := L_spec hx3
+  obtain ⟨i, hmi⟩ : ∃ i, mult x = 2 * 2 ^ i := by
+    rcases mult_mem x with h | h | h | h
+    · exact ⟨0, by simp [h]⟩
+    · exact ⟨1, by simp [h]⟩
+    · exact ⟨2, by simp [h]⟩
+    · exact ⟨3, by simp [h]⟩
+  obtain ⟨m, hm⟩ : ∃ m, 2 * x - 1 = 3 * m := ⟨(2 * x - 1) / 3, by omega⟩
+  have hL : L x = 2 ^ i * m := by
+    have h6 : 6 * L x = 6 * (2 ^ i * m) := by
+      rw [hs, hmi, hm]; ring
+    exact Nat.eq_of_mul_eq_mul_left (by norm_num) h6
+  have e1 : collatz m = 2 * x := by
+    unfold collatz
+    split_ifs with h <;> omega
+  refine ⟨2 + i, ?_⟩
+  rw [Function.iterate_add_apply, hL, collatz_pow_mul]
+  show collatz (collatz m) = x
+  rw [e1, collatz_double]
+
+theorem Desc_reaches {v n : ℕ} (hv : InG v) (h : Desc v n) : Reaches v n := by
+  induction h with
+  | refl => exact ⟨0, rfl⟩
+  | @right n hn ih =>
+    obtain ⟨j, hj⟩ := R_reaches n
+    obtain ⟨k, hk⟩ := ih
+    exact ⟨k + j, by rw [Function.iterate_add_apply, hj, hk]⟩
+  | @left n hn ih =>
+    have hI : InG n := Desc_mem hv hn
+    have h8 : 8 ≤ n := hI.1
+    have h9 : n % 9 = 2 ∨ n % 9 = 8 := hI.2
+    have hn3 : n % 3 = 2 := by omega
+    have hn1 : 1 ≤ n := by omega
+    obtain ⟨j, hj⟩ := L_reaches hn1 hn3
+    obtain ⟨k, hk⟩ := ih
+    exact ⟨k + j, by rw [Function.iterate_add_apply, hj, hk]⟩
+
+/-! ## 3. The branches are the atomic inverse steps, and agree with the original coordinates -/
+
+/-- Right branch: no intermediate doubling `2x, 4x, 8x` lands in a valid class
+before `R x` does. -/
+theorem R_first {x : ℕ} :
+    (x % 9 = 2 → ¬ ValidClass (2 * x)) ∧
+    (x % 9 = 8 → ¬ ValidClass (2 * x) ∧ ¬ ValidClass (4 * x) ∧ ¬ ValidClass (8 * x)) := by
+  unfold ValidClass
+  omega
+
+/-- Left branch: with `m = (2x-1)/3` the odd predecessor, `L x` is the first of
+`m, 2m, 4m, 8m` lying in a valid class. -/
+theorem L_first {x m : ℕ} (hx : x % 9 = 2 ∨ x % 9 = 8) (hm : 2 * x - 1 = 3 * m) :
+    L x = m ∨ (¬ ValidClass m ∧ (L x = 2 * m ∨ (¬ ValidClass (2 * m) ∧
+      (L x = 4 * m ∨ (¬ ValidClass (4 * m) ∧ L x = 8 * m))))) := by
+  have hx3 : x % 3 = 2 := by omega
+  have hs := L_spec hx3
+  have h27 := residue_mod27 hx
+  unfold ValidClass
+  unfold mult at hs
+  split_ifs at hs <;> omega
+
+/-- Original-coordinate right rule. -/
+def Rorig (n : ℕ) : ℕ := if n % 3 = 1 then 4 * n + 1 else 16 * n + 5
+
+/-- Original-coordinate left multiplier, selected by `n` modulo `9`. -/
+def multOrig (n : ℕ) : ℕ :=
+  if n % 9 = 1 then 4
+  else if n % 9 = 2 then 2
+  else if n % 9 = 4 then 4
+  else if n % 9 = 5 then 8
+  else if n % 9 = 7 then 16
+  else 2
+
+/-- Original-coordinate left rule. -/
+def Lorig (n : ℕ) : ℕ := (multOrig n * n - 1) / 3
+
+theorem R_conj {n : ℕ} (h2 : n % 2 = 1) :
+    R (toX n) = toX (Rorig n) := by
+  unfold R toX Rorig
+  split_ifs <;> omega
+
+theorem L_conj {n : ℕ} (h2 : n % 2 = 1) (h3 : n % 3 ≠ 0) :
+    L (toX n) = toX (Lorig n) := by
+  unfold L mult toX Lorig multOrig
+  split_ifs <;> omega
 
 /-! ## Precision loss under the left branch -/
 
@@ -1284,67 +1456,7 @@ theorem main_theorem_core (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v)
   obtain ⟨n, hn, hpair⟩ := hr'
   exact ⟨n, hn, (Prod.mk.inj hpair).1.symm, (Prod.mk.inj hpair).2.symm⟩
 
-/-! ## Collatz layer: descendants reach their seed -/
-
-def collatz (n : ℕ) : ℕ := if n % 2 = 0 then n / 2 else 3 * n + 1
-
-def Reaches (v n : ℕ) : Prop := ∃ k, collatz^[k] n = v
-
-theorem collatz_double (a : ℕ) : collatz (2 * a) = a := by
-  unfold collatz
-  split_ifs with h <;> omega
-
-theorem collatz_pow_mul (j m : ℕ) : collatz^[j] (2 ^ j * m) = m := by
-  induction j with
-  | zero => simp
-  | succ j ih =>
-    rw [show 2 ^ (j + 1) * m = 2 * (2 ^ j * m) by ring,
-      Function.iterate_succ_apply, collatz_double, ih]
-
-theorem R_reaches (x : ℕ) : ∃ j, collatz^[j] (R x) = x := by
-  unfold R
-  split_ifs
-  · exact ⟨2, by rw [show (4 : ℕ) * x = 2 ^ 2 * x by norm_num]; exact collatz_pow_mul 2 x⟩
-  · exact ⟨4, by rw [show (16 : ℕ) * x = 2 ^ 4 * x by norm_num]; exact collatz_pow_mul 4 x⟩
-
-theorem L_reaches {x : ℕ} (hx1 : 1 ≤ x) (hx3 : x % 3 = 2) :
-    ∃ j, collatz^[j] (L x) = x := by
-  have hs := L_spec hx3
-  obtain ⟨i, hmi⟩ : ∃ i, mult x = 2 * 2 ^ i := by
-    rcases mult_mem x with h | h | h | h
-    · exact ⟨0, by simp [h]⟩
-    · exact ⟨1, by simp [h]⟩
-    · exact ⟨2, by simp [h]⟩
-    · exact ⟨3, by simp [h]⟩
-  obtain ⟨m, hm⟩ : ∃ m, 2 * x - 1 = 3 * m := ⟨(2 * x - 1) / 3, by omega⟩
-  have hL : L x = 2 ^ i * m := by
-    have h6 : 6 * L x = 6 * (2 ^ i * m) := by
-      rw [hs, hmi, hm]; ring
-    exact Nat.eq_of_mul_eq_mul_left (by norm_num) h6
-  have e1 : collatz m = 2 * x := by
-    unfold collatz
-    split_ifs with h <;> omega
-  refine ⟨2 + i, ?_⟩
-  rw [Function.iterate_add_apply, hL, collatz_pow_mul]
-  show collatz (collatz m) = x
-  rw [e1, collatz_double]
-
-theorem Desc_reaches {v n : ℕ} (hv : InG v) (h : Desc v n) : Reaches v n := by
-  induction h with
-  | refl => exact ⟨0, rfl⟩
-  | @right n hn ih =>
-    obtain ⟨j, hj⟩ := R_reaches n
-    obtain ⟨k, hk⟩ := ih
-    exact ⟨k + j, by rw [Function.iterate_add_apply, hj, hk]⟩
-  | @left n hn ih =>
-    have hI : InG n := Desc_mem hv hn
-    have h8 : 8 ≤ n := hI.1
-    have h9 : n % 9 = 2 ∨ n % 9 = 8 := hI.2
-    have hn3 : n % 3 = 2 := by omega
-    have hn1 : 1 ≤ n := by omega
-    obtain ⟨j, hj⟩ := L_reaches hn1 hn3
-    obtain ⟨k, hk⟩ := ih
-    exact ⟨k + j, by rw [Function.iterate_add_apply, hj, hk]⟩
+/-! ## Collatz bridge: seeds and the base case -/
 
 theorem collatz_8 : collatz^[3] 8 = 1 := by decide
 
@@ -1377,11 +1489,6 @@ theorem inverse_tree_covers (r : ZMod p) :
       rcases hn with h | h <;> rw [h]
       · exact ⟨0, rfl⟩
       · exact ⟨1, by decide⟩
-
-theorem reaches_trans {a b c : ℕ} (h1 : Reaches b a) (h2 : Reaches c b) : Reaches c a := by
-  obtain ⟨k1, hk1⟩ := h1
-  obtain ⟨k2, hk2⟩ := h2
-  exact ⟨k2 + k1, by rw [Function.iterate_add_apply, hk1, hk2]⟩
 
 theorem exists_inG_reaches (m : ℕ) (hm : 0 < m) (hm3 : m % 3 ≠ 0) :
     ∃ v, InG v ∧ Reaches m v := by
