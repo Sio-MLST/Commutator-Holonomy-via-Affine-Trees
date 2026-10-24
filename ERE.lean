@@ -85,7 +85,12 @@ theorem inG_iff {x : ℕ} : InG x ↔ ∃ n, GoodOdd n ∧ 5 ≤ n ∧ toX n = x
     rintro ⟨n, hg, h5, rfl⟩
     exact toX_inG hg h5⟩
 
-/-! ## 4. Branch operators and the descendant tree -/
+/-! ## 3. Branch operators, descendant tree, and derivation of the branches
+
+Note: Lemmas 4.1–4.3 of the paper (`L_spec`, `residue_mod27`, `R_mem`, `L_mem`,
+`L_valid`, `Desc_mem`) are proved in this block, since the trajectory lemmas need them. -/
+
+/-! ### Operators and invariance of the domain -/
 
 def R (x : ℕ) : ℕ := if x % 9 = 2 then 4 * x else 16 * x
 
@@ -164,7 +169,7 @@ theorem Desc_mem {v n : ℕ} (hv : InG v) (h : Desc v n) : InG n := by
   | left  _ ih => exact L_mem ih
 
 
-/-! ## 5. Descendants reach their seed -/
+/-! ### Branch trajectories and soundness of the tree (Lemmas 3.4, 3.5) -/
 
 theorem R_reaches (x : ℕ) : ∃ j, collatz^[j] (R x) = x := by
   unfold R
@@ -211,7 +216,7 @@ theorem Desc_reaches {v n : ℕ} (hv : InG v) (h : Desc v n) : Reaches v n := by
     obtain ⟨k, hk⟩ := ih
     exact ⟨k + j, by rw [Function.iterate_add_apply, hj, hk]⟩
 
-/-! ## 3. The branches are the atomic inverse steps, and agree with the original coordinates -/
+/-! ### Derivation of the branches from the atomic inverse steps (Proposition 3.3) -/
 
 /-- Right branch: no intermediate doubling `2x, 4x, 8x` lands in a valid class
 before `R x` does. -/
@@ -258,7 +263,7 @@ theorem L_conj {n : ℕ} (h2 : n % 2 = 1) (h3 : n % 3 ≠ 0) :
   unfold L mult toX Lorig multOrig
   split_ifs <;> omega
 
-/-! ## Precision loss under the left branch -/
+/-! ## 4. Precision loss under the left branch (Lemma 4.4) -/
 
 theorem mod27_eq_of_mod_pow {K x y : ℕ} (hK : 1 ≤ K)
     (hxy : x % 3 ^ (K + 2) = y % 3 ^ (K + 2)) :
@@ -297,7 +302,7 @@ theorem L_cong {K x y : ℕ} (hK : 1 ≤ K)
     linear_combination hLy - hLx + 2 * ((mult x : ℕ) : ℤ) * hq
   exact key
 
-/-! ## The right-branch cycle on residue classes -/
+/-! ## 5. Right-branch dynamics on cylinders -/
 
 def rnext (K c : ℕ) : ℕ := R c % 3 ^ (K + 1)
 def lnext (K e : ℕ) : ℕ := L e % 3 ^ (K + 1)
@@ -461,7 +466,7 @@ theorem four_pow_mod9 (E : ℕ) :
       · have := b (by omega); omega
       · have := c (by omega); omega
 
-/-! ## Exponents and order -/
+/-! ### Exponents and order (Section 5, continued) -/
 
 theorem rIter_modEq {K n c d : ℕ} (hK : 1 ≤ K) (hc : ValidClass c)
     (hcl : c < 3 ^ (K + 1)) (hd : d < 3 ^ (K + 1)) (h : rIter K n c = d) :
@@ -523,7 +528,7 @@ theorem exp_type {K : ℕ} (hK : 1 ≤ K) {c E : ℕ} (hc : ValidClass c)
   obtain ⟨a, b, d⟩ := four_pow_mod9 E
   omega
 
-/-! ## Existence of exponents via pigeonhole -/
+/-! ### Existence of exponents via pigeonhole (Section 5, continued) -/
 
 theorem exists_exp {K : ℕ} (hK : 1 ≤ K) {c : ℕ}
     (hc : ValidClass c) (hlt : c < 3 ^ (K + 1)) :
@@ -630,7 +635,7 @@ theorem R_full_loop {K : ℕ} (hK : 1 ≤ K) :
   rw [h3]
   exact Nat.mod_eq_of_lt h8
 
-/-! ## Affine labels and walks -/
+/-! ## 6. Affine labels and holonomy -/
 
 abbrev Aff := ZMod p × ZMod p
 
@@ -830,7 +835,7 @@ theorem walk_of_rIter {K : ℕ} (hK : 1 ≤ K) (n : ℕ) :
     rw [rightLabel_fst, rightLabel_snd]
     ext <;> simp [pow_add, mul_comm]
 
-/-! ## Fibres -/
+/-! ## 7. Fibres and stabilization -/
 
 def M (K v : ℕ) : Set (ℕ × ZMod p) :=
   {q | ∃ n, Desc v n ∧ q = (n % 3 ^ (K + 1), (n : ZMod p))}
@@ -935,7 +940,7 @@ theorem fibre_root_nonempty (K v : ℕ) :
     (fibre p K v (v % 3 ^ (K + 1))).Nonempty :=
   ⟨(v : ZMod p), v, Desc.refl, rfl⟩
 
-/-! ## Stabilisation of fibre cardinalities -/
+/-! ### Stabilisation of fibre cardinalities (Section 7, continued) -/
 
 theorem fibre_ncard_step (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v) {K : ℕ}
     (hK : 1 ≤ K) (c : ℕ) :
@@ -984,6 +989,8 @@ theorem fibre_ncard_antitone {v : ℕ} (K : ℕ) (hK : 1 ≤ K) :
     rwa [Nat.mod_eq_of_lt h8] at this
   exact Set.ncard_le_ncard hsub
 
+/-- Cardinality Stabilization (Proposition 7.3): At sufficiently large depth `K ≥ K0`,
+all fibre cardinalities `|F_K(c)|` stabilize to a common constant `σ ≥ 1`. -/
 theorem stabilization (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v) :
     ∃ K0 σ : ℕ, 1 ≤ K0 ∧ 1 ≤ σ ∧
       ∀ K, K0 ≤ K → ∀ c, ValidClass c → c < 3 ^ (K + 1) →
@@ -1093,14 +1100,14 @@ theorem walk_image (hp5 : 5 ≤ p) {v K0 σ : ℕ} (hv : InG v)
       funext (athen_app p (ainv p f) g)
     rw [hfun, Set.image_comp, e2, ih]
 
-/-! ## Commutator identity -/
+/-! ## 8. The commutator engine and simultaneous density -/
 
 theorem comm_label (lam α β : ZMod p) (hl : lam ≠ 0) (ha : α ≠ 0) :
     athen p (athen p (athen p (ainv p (α, β)) (ainv p (lam, 0))) (α, β)) (lam, 0)
       = (1, (lam - 1) * β) := by
   ext
-  · simp [athen, ainv]; try field_simp
-  · simp [athen, ainv]; try field_simp; try ring
+  · simp [athen, ainv]; field_simp
+  · simp [athen, ainv]; field_simp; ring
 
 theorem translation_of_dilation (hp5 : 5 ≤ p) {K : ℕ}
     {lam α β : ZMod p}
@@ -1113,7 +1120,7 @@ theorem translation_of_dilation (hp5 : 5 ≤ p) {K : ℕ}
   rw [comm_label p lam α β hl0 ha] at h
   exact ⟨(lam - 1) * β, mul_ne_zero (sub_ne_zero.2 hl1) hb, h⟩
 
-/-! ## Existence of a nontrivial translation -/
+/-! ### Existence of a nontrivial translation (Section 8, continued) -/
 
 theorem ref_walk (hp5 : 5 ≤ p) {K : ℕ} (hK : 1 ≤ K) :
     ∃ α β : ZMod p, α ≠ 0 ∧ β ≠ 0 ∧ (α, β) ∈ Hol p K := by
@@ -1204,7 +1211,7 @@ theorem pure_dilation_of_pair (hp5 : 5 ≤ p) {K : ℕ} (hK : 1 ≤ K) {e1 e2 : 
   convert hfull using 1
   apply Prod.ext
   · simp only [athen, ainv, leftLabel]; field_simp
-  · simp only [athen, ainv, leftLabel]; field_simp; try ring
+  · simp only [athen, ainv, leftLabel]; field_simp; ring
 
 theorem dil_case2a (hp5 : 5 ≤ p) {K a : ℕ}
     (hK : 1 ≤ K) (ha2 : 2 ≤ a) (haK : a ≤ K)
@@ -1283,23 +1290,6 @@ theorem dil_case2a (hp5 : 5 ≤ p) {K a : ℕ}
   rw [div_eq_one_iff_eq (mul_ne_zero (by rw [hmult1]; exact hm0) hτ0)] at h
   rw [hmult1] at h
   exact hτ (mul_left_cancel₀ hm8 (by rw [mul_one]; exact h.symm))
-
-theorem order_three_forces_seven (hp5 : 5 ≤ p)
-    (h : orderOf (4 : ZMod p) = 3) : p = 7 := by
-  have h4 : (4 : ZMod p) ^ 3 = 1 := by
-    have := pow_orderOf_eq_one (4 : ZMod p)
-    rwa [h] at this
-  have h63 : ((63 : ℕ) : ZMod p) = 0 := by
-    have h' : ((63 : ℕ) : ZMod p) = (4 : ZMod p) ^ 3 - 1 := by norm_num
-    rw [h', h4, sub_self]
-  have hdvd : p ∣ 63 := (CharP.cast_eq_zero_iff (ZMod p) p 63).mp h63
-  have hp : p.Prime := Fact.out
-  have h63' : p ∣ 7 * 3 ^ 2 := by simpa using hdvd
-  rcases (Nat.Prime.dvd_mul hp).1 h63' with h7 | h9
-  · exact (Nat.prime_dvd_prime_iff_eq hp (by norm_num : Nat.Prime 7)).1 h7
-  · have h3 : p ∣ 3 := hp.dvd_of_dvd_pow h9
-    have := Nat.le_of_dvd (by norm_num) h3
-    omega
 
 theorem dil_case2b (hp5 : 5 ≤ p) {K : ℕ} (hK : 1 ≤ K)
     (hord : orderOf (4 : ZMod p) = 3) :
@@ -1393,8 +1383,10 @@ theorem translation_exists (hp5 : 5 ≤ p) {K : ℕ} (hK : 1 ≤ K) :
   obtain ⟨α, β, ha, hb, hh⟩ := ref_walk p hp5 hK
   exact translation_of_dilation p hp5 hl0 hl1 ha hb hμ hh
 
-/-! ## Simultaneous density -/
+/-! ### Simultaneous density (Theorem 8.6) -/
 
+/-- Simultaneous Density (Theorem 8.6): For any valid cylinder `c < 3^(J+1)` and any
+residue `r ∈ ZMod p`, descendants of `v` realize `r` within cylinder `c`. -/
 theorem main_theorem_core (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v)
     {J : ℕ} (hJ : 1 ≤ J) {c : ℕ}
     (hc : ValidClass c) (hcl : c < 3 ^ (J + 1)) (r : ZMod p) :
@@ -1456,7 +1448,7 @@ theorem main_theorem_core (hp5 : 5 ≤ p) {v : ℕ} (hv : InG v)
   obtain ⟨n, hn, hpair⟩ := hr'
   exact ⟨n, hn, (Prod.mk.inj hpair).1.symm, (Prod.mk.inj hpair).2.symm⟩
 
-/-! ## Collatz bridge: seeds and the base case -/
+/-! ## Seeds (Lemma 3.6) and the Collatz bridge (auxiliary) -/
 
 theorem collatz_8 : collatz^[3] 8 = 1 := by decide
 
@@ -1501,7 +1493,7 @@ theorem exists_inG_reaches (m : ℕ) (hm : 0 < m) (hm3 : m % 3 ≠ 0) :
   · refine ⟨512 * m, ⟨by omega, Or.inl (by omega)⟩, ⟨9, collatz_pow_mul 9 m⟩⟩
   · refine ⟨64 * m, ⟨by omega, Or.inr (by omega)⟩, ⟨6, collatz_pow_mul 6 m⟩⟩
 
-/-! ## General targets and modular bridges -/
+/-! ## Modular bridges for general targets (auxiliary) -/
 
 lemma exists_pow_two_mod (w a : ℕ) (hw3 : w % 3 ≠ 0) (ha9 : a = 1 ∨ a = 2) :
     ∃ j < 6, 2 ^ j * w % 9 = a := by
@@ -1599,7 +1591,7 @@ lemma reaches_of_three_mul_add_one {w k q : ℕ} (hk : 1 ≤ k)
   rw [Function.iterate_succ_apply, hc]
   exact collatz_pow_mul _ _
 
-/-! ## The three cases and the master theorem -/
+/-! ## 9. Small primes and the master theorem -/
 
 theorem main_theorem_p_ge_5 (hp5 : 5 ≤ p)
     (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
@@ -1665,6 +1657,9 @@ theorem main_theorem_p_eq_3 (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
     rw [show 2 ^ (k + 1) * w = 2 * (2 ^ k * w) by ring]
     omega
 
+/-- Master Theorem (Theorem 1.1): For every prime `p`, every target `w > 0` with `3 ∤ w`,
+every residue `r ∈ ZMod p`, and every threshold `B`, there exists `n > B` reaching `w`
+with `n ≡ r (mod p)`. -/
 theorem main_theorem_infinite (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
     (r : ZMod p) (B : ℕ) :
     ∃ n : ℕ, B < n ∧ Reaches w n ∧ (n : ZMod p) = r := by
@@ -1680,7 +1675,7 @@ theorem main_theorem_infinite (w : ℕ) (hw : 0 < w) (hw3 : w % 3 ≠ 0)
     · exact main_theorem_p_eq_2 2 w hw hw3 rfl r B
     · exact main_theorem_p_eq_3 3 w hw hw3 rfl r B
 
-/-! ## Modular solvability of cycle equations -/
+/-! ## 10. Application: local obstruction barriers for cycles -/
 
 theorem cycle_equation_solvable_mod_p (S k N : ℕ)
     (h : ((2 ^ S - 3 ^ k : ℤ) : ZMod p) ≠ 0) :
@@ -1688,7 +1683,7 @@ theorem cycle_equation_solvable_mod_p (S k N : ℕ)
   refine ⟨((2 ^ S - 3 ^ k : ℤ) : ZMod p)⁻¹ * (N : ZMod p), ?_⟩
   rw [← mul_assoc, mul_inv_cancel₀ h, one_mul]
 
-/-! ## The modular barrier on cycles -/
+/-! ### The modular barrier on cycles (Theorem 10.3) -/
 
 structure CycleSpec where
   k : ℕ
@@ -1701,6 +1696,8 @@ theorem reaching_predecessor_dense_mod_p {v : ℕ} (hv : 0 < v) (hv3 : v % 3 ≠
   obtain ⟨n, _, h1, h2⟩ := main_theorem_infinite p v hv hv3 r 0
   exact ⟨n, h1, h2⟩
 
+/-- Absence of Local Modular Obstructions (Theorem 10.3): Single-prime modular conditions
+cannot obstruct hypothetical Collatz cycle equations when the denominator is non-zero mod `p`. -/
 theorem cycle_local_obstruction_barrier (spec : CycleSpec)
     (h_denom : ((2 ^ spec.S - 3 ^ spec.k : ℤ) : ZMod p) ≠ 0)
     {v : ℕ} (hv : 0 < v) (hv3 : v % 3 ≠ 0) :
